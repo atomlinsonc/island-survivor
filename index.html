@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Island Survivor — Economics Challenge</title>
+  <style>
+    /* ─── reset & base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sky:   #4fc3f7;
+      --sand:  #f5c16c;
+      --palm:  #2e7d32;
+      --ocean: #0277bd;
+      --cream: #fffde7;
+      --card:  #ffffff;
+      --text:  #263238;
+      --muted: #78909c;
+      --red:   #e53935;
+      --orange:#fb8c00;
+      --blue:  #1e88e5;
+      --green: #43a047;
+      --brown: #6d4c41;
+      --shadow: 0 4px 20px rgba(0,0,0,.14);
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(160deg, var(--sky) 0%, #81d4fa 45%, var(--sand) 45%, #f9d79c 70%, var(--palm) 70%);
+      min-height: 100vh;
+      color: var(--text);
+    }
+    button { font-family: inherit; cursor: pointer; border: none; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ─── INTRO SCREEN ─── */
+    #intro {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      text-align: center;
+    }
+    #intro .hero { font-size: 72px; margin-bottom: 8px; }
+    #intro h1  { font-size: 2.4em; color: #01579b; letter-spacing: -1px; }
+    #intro .tagline { color: var(--muted); font-size: 1.05em; margin: 8px 0 28px; }
+    .info-card {
+      background: rgba(255,255,255,.92);
+      border-radius: 14px;
+      padding: 20px 24px;
+      text-align: left;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .info-card h3 { color: var(--orange); font-size: 1em; margin-bottom: 10px; }
+    .info-card ul { list-style: none; }
+    .info-card li { padding: 5px 0 5px 22px; position: relative; font-size: .92em; }
+    .info-card li::before { content: "▶"; position: absolute; left: 0; color: var(--orange); font-size: .65em; top: 7px; }
+    .info-card p { font-size: .92em; line-height: 1.6; }
+    .btn {
+      display: inline-block;
+      padding: 14px 36px;
+      border-radius: 30px;
+      font-size: 1.05em;
+      font-weight: 700;
+      letter-spacing: .3px;
+      transition: all .18s;
+      box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    }
+    .btn-primary { background: #01579b; color: #fff; }
+    .btn-primary:hover { background: #014880; transform: translateY(-2px); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #388e3c; transform: translateY(-2px); }
+    .btn-outline { background: #fff; color: var(--text); border: 2px solid #ccc; }
+    .btn-outline:hover { border-color: #aaa; }
+
+    /* ─── GAME SCREEN ─── */
+    #game {
+      max-width: 980px;
+      margin: 16px auto;
+      background: rgba(255,255,255,.97);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* header */
+    .g-header {
+      background: linear-gradient(135deg, #01579b, #0288d1);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .g-header .day-badge {
+      background: rgba(255,255,255,.18);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 1.3em;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .g-header .phase-label { font-size: .8em; opacity: .85; }
+    .hour-track { display: flex; gap: 5px; align-items: center; margin-left: auto; }
+    .hour-pip {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #f9a825; border: 2px solid #ffd54f;
+      transition: all .3s;
+    }
+    .hour-pip.spent { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.2); }
+    .hours-label { font-size: .8em; opacity: .8; white-space: nowrap; }
+
+    /* event banner */
+    #evt-banner {
+      padding: 10px 20px;
+      font-weight: 600;
+      font-size: .9em;
+      display: none;
+      animation: slideDown .3s ease;
+    }
+    @keyframes slideDown { from { transform: translateY(-8px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+    #evt-banner.danger  { background: #ffebee; color: #b71c1c; border-left: 4px solid var(--red); display:block; }
+    #evt-banner.warning { background: #fff3e0; color: #e65100; border-left: 4px solid var(--orange); display:block; }
+    #evt-banner.info    { background: #e3f2fd; color: #0d47a1; border-left: 4px solid var(--blue); display:block; }
+    #evt-banner.good    { background: #e8f5e9; color: #1b5e20; border-left: 4px solid var(--green); display:block; }
+
+    /* layout */
+    .g-body { display: grid; grid-template-columns: 230px 1fr; min-height: 580px; }
+
+    /* sidebar */
+    .sidebar {
+      background: #f5f7fa;
+      border-right: 1px solid #e0e4ea;
+      padding: 16px 14px;
+    }
+    .sidebar-section { margin-bottom: 20px; }
+    .sidebar-title {
+      font-size: .72em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .res-row { margin-bottom: 10px; }
+    .res-lbl { display: flex; justify-content: space-between; font-size: .84em; font-weight: 600; margin-bottom: 3px; }
+    .res-track { height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; }
+    .res-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width .5s ease;
+    }
+    .res-fill.health  { background: linear-gradient(90deg,#ef5350,#e53935); }
+    .res-fill.food    { background: linear-gradient(90deg,#ffa726,#fb8c00); }
+    .res-fill.water   { background: linear-gradient(90deg,#42a5f5,#1e88e5); }
+    .res-fill.shelter { background: linear-gradient(90deg,#66bb6a,#43a047); }
+    .res-fill.crit    { animation: blink .5s infinite alternate; }
+    @keyframes blink { from{opacity:1} to{opacity:.5} }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .badge {
+      font-size: .72em;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: #e8f5e9;
+      color: #1b5e20;
+      font-weight: 600;
+    }
+    .threat-item { font-size: .8em; color: #c62828; padding: 3px 0; }
+
+    /* main panel */
+    .main-panel { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+    .section-hd {
+      font-size: .72em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    /* action grid */
+    #action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .act-card {
+      border: 2px solid #e0e4ea;
+      border-radius: 12px;
+      padding: 12px 11px;
+      background: var(--card);
+      cursor: pointer;
+      transition: all .18s;
+      position: relative;
+    }
+    .act-card:hover { border-color: #1e88e5; box-shadow: 0 4px 16px rgba(30,136,229,.18); transform: translateY(-2px); }
+    .act-card.locked { opacity: .38; pointer-events: none; }
+    .act-card.new-unlock::after {
+      content: "NEW";
+      position: absolute; top: -7px; right: 8px;
+      background: var(--red); color: #fff;
+      font-size: .6em; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .act-icon { font-size: 1.7em; margin-bottom: 4px; }
+    .act-name { font-weight: 700; font-size: .88em; margin-bottom: 3px; }
+    .act-desc { font-size: .76em; color: var(--muted); margin-bottom: 7px; line-height: 1.4; }
+    .act-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag {
+      font-size: .7em;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .tag.time    { background: #fff8e1; color: #e65100; }
+    .tag.reward  { background: #e3f2fd; color: #0d47a1; }
+    .tag.risk    { background: #ffebee; color: #c62828; }
+    .act-opp { font-size: .7em; color: #e65100; font-style: italic; margin-top: 6px; line-height: 1.3; }
+
+    /* storm meter */
+    #storm-meter {
+      background: #fff3e0;
+      border: 1px solid #ffe0b2;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .82em;
+    }
+    #storm-meter .sm-title { font-weight: 700; color: #e65100; margin-bottom: 6px; }
+    .sm-bar-bg { height: 8px; background: #ffe0b2; border-radius: 4px; overflow: hidden; }
+    .sm-bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+    .sm-labels { display: flex; justify-content: space-between; font-size: .72em; color: var(--muted); margin-top: 4px; }
+
+    /* activity log */
+    #log-box {
+      background: #f5f7fa;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    #log-entries {
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: .83em;
+    }
+    .log-line { padding: 4px 0; border-bottom: 1px solid #e8ecef; display: flex; gap: 7px; align-items: flex-start; }
+    .log-line:last-child { border-bottom: none; }
+    .log-opp { font-size: .82em; color: #e65100; font-style: italic; padding: 1px 0 5px 24px; }
+    .log-empty { color: var(--muted); font-style: italic; font-size: .85em; }
+
+    /* end day button */
+    #end-day-wrap { text-align: center; padding-top: 4px; }
+    #end-day-btn {
+      padding: 11px 30px;
+      border-radius: 25px;
+      background: #4a148c;
+      color: #fff;
+      font-size: .95em;
+      font-weight: 700;
+      box-shadow: 0 3px 12px rgba(74,20,140,.3);
+      transition: all .18s;
+    }
+    #end-day-btn:hover { background: #38006b; transform: translateY(-1px); }
+    .end-hint { font-size: .74em; color: var(--muted); margin-top: 5px; }
+
+    /* ─── NIGHT MODAL ─── */
+    #night-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+    #night-modal.open { display: flex; }
+    .night-panel {
+      background: #0d1b2a;
+      color: #eee;
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 480px;
+      width: 92%;
+      border: 1px solid #1e3a5f;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    }
+    .night-panel h2 { color: #f9a825; text-align: center; margin-bottom: 16px; }
+    .night-evt {
+      border-radius: 8px;
+      padding: 10px 13px;
+      margin: 8px 0;
+      font-size: .86em;
+      line-height: 1.45;
+    }
+    .night-evt.danger  { background: rgba(229,57,53,.25); border-left: 3px solid #ef5350; }
+    .night-evt.warning { background: rgba(251,140,0,.2);  border-left: 3px solid #ffa726; }
+    .night-evt.good    { background: rgba(67,160,71,.2);  border-left: 3px solid #66bb6a; }
+    .night-evt.info    { background: rgba(255,255,255,.07); border-left: 3px solid #aaa; }
+    .res-delta-row {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      justify-content: center;
+      margin: 14px 0;
+    }
+    .rdelta {
+      padding: 5px 11px;
+      border-radius: 8px;
+      font-size: .8em;
+      font-weight: 600;
+    }
+    .rdelta.pos { background: rgba(67,160,71,.3); color: #a5d6a7; }
+    .rdelta.neg { background: rgba(229,57,53,.3); color: #ef9a9a; }
+    .night-preview {
+      text-align: center;
+      font-size: .82em;
+      color: #b0bec5;
+      margin: 12px 0;
+    }
+    #next-day-btn {
+      display: block; margin: 0 auto;
+      padding: 12px 32px;
+      border-radius: 25px;
+      background: #43a047;
+      color: #fff;
+      font-weight: 700;
+      font-size: .95em;
+      box-shadow: 0 3px 12px rgba(0,0,0,.3);
+      transition: all .18s;
+    }
+    #next-day-btn:hover { background: #388e3c; }
+
+    /* ─── GAME OVER SCREEN ─── */
+    #gameover {
+      max-width: 660px;
+      margin: 30px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    .score-card {
+      background: rgba(255,255,255,.95);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+    }
+    .score-big { font-size: 5em; font-weight: 900; color: var(--orange); line-height: 1; }
+    .score-sub { font-size: 1.1em; color: var(--muted); margin-bottom: 20px; }
+    .result-title { font-size: 1.6em; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .death-box {
+      background: #ffebee; border: 1px solid #ef9a9a;
+      border-radius: 10px; padding: 14px; margin: 14px 0;
+      font-size: .88em; color: #b71c1c; text-align: left;
+    }
+    .death-box.rescued { background: #e8f5e9; border-color: #a5d6a7; color: #1b5e20; }
+    .econ-box {
+      background: #e3f2fd; border: 1px solid #90caf9;
+      border-radius: 10px; padding: 14px; margin: 14px 0;
+      text-align: left;
+    }
+    .econ-box h3 { color: #0d47a1; font-size: .9em; margin-bottom: 6px; }
+    .econ-box p  { font-size: .84em; line-height: 1.55; color: #1a237e; }
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; text-align: left; margin: 16px 0;
+    }
+    .stat-item {
+      background: #f5f7fa; border-radius: 8px;
+      padding: 8px 12px; font-size: .83em;
+    }
+    .stat-item strong { display: block; color: var(--muted); font-size: .85em; margin-bottom: 2px; }
+    .go-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+    #share-box {
+      display: none;
+      background: #f5f7fa; border-radius: 8px;
+      padding: 12px; margin-top: 14px;
+      font-size: .8em; font-family: monospace;
+      text-align: left; white-space: pre-wrap;
+      color: #333;
+    }
+
+    /* ─── responsive ─── */
+    @media (max-width: 680px) {
+      .g-body { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid #e0e4ea; }
+      #action-grid { grid-template-columns: repeat(2,1fr); }
+      .score-big { font-size: 3.5em; }
+    }
+    @media (max-width: 400px) {
+      #action-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ INTRO SCREEN ═══════════════════════════════ -->
+<div id="intro" class="screen active">
+  <div class="hero">🏝️</div>
+  <h1>Island Survivor</h1>
+  <p class="tagline">The Economics of Survival — A Classroom Challenge</p>
+
+  <div class="info-card">
+    <h3>📋 Your Situation</h3>
+    <p>You are the sole survivor of a shipwreck. You've washed ashore on a deserted island with almost nothing. Each day you have <strong>8 hours of usable daylight</strong> to gather resources, build shelter, and prepare for what's coming. Make wise choices — your survival depends on them.</p>
+  </div>
+
+  <div class="info-card">
+    <h3>📚 Economic Concepts You'll Experience</h3>
+    <ul>
+      <li><strong>Opportunity Cost:</strong> Every hour spent on one action is an hour you cannot spend on another.</li>
+      <li><strong>Scarcity:</strong> Time and resources are always limited — you can never do everything.</li>
+      <li><strong>Trade-offs:</strong> Gathering food now vs. building shelter before the storm?</li>
+      <li><strong>Diminishing Returns:</strong> Each additional hour of shelter-building adds less benefit than the first.</li>
+      <li><strong>Investment:</strong> Spending time to build tools now pays off on every future gathering trip.</li>
+      <li><strong>Risk vs. Reward:</strong> Hunting yields more food, but risks injury.</li>
+    </ul>
+  </div>
+
+  <div class="info-card">
+    <h3>🎯 Survival Rules</h3>
+    <ul>
+      <li>Keep <strong>Food</strong>, <strong>Water</strong>, and <strong>Health</strong> above zero.</li>
+      <li>Storms are coming — watch for warnings and prepare your shelter.</li>
+      <li>The game grows more complex as you survive longer.</li>
+      <li><strong>Score = Days Survived.</strong> Share your score with the class!</li>
+    </ul>
+  </div>
+
+  <button class="btn btn-primary" onclick="startGame()">🚀 Begin Survival Challenge</button>
+</div>
+
+
+<!-- ═══════════════════════════════ GAME SCREEN ═══════════════════════════════ -->
+<div id="game" class="screen">
+  <div class="g-header">
+    <div>
+      <div class="day-badge" id="hdr-day">Day 1</div>
+      <div class="phase-label" id="hdr-phase">Phase 1 · Basic Survival</div>
+    </div>
+    <div class="hour-track" id="hour-track"></div>
+    <div class="hours-label"><span id="hdr-hrs">8</span> hrs left</div>
+  </div>
+
+  <div id="evt-banner"></div>
+
+  <div class="g-body">
+    <!-- ── SIDEBAR ── -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Resources</div>
+        <div class="res-row">
+          <div class="res-lbl"><span>❤️ Health</span><span id="v-health">100</span></div>
+          <div class="res-track"><div class="res-fill health" id="b-health" style="width:100%"></div></div>
+        </div>
+        <div class="res-row">
+          <div class="res-lbl"><span>🍖 Food</span><span id="v-food">50</span></div>
+          <div class="res-track"><div class="res-fill food" id="b-food" style="width:50%"></div></div>
+        </div>
+        <div class="res-row">
+          <div class="res-lbl"><span>💧 Water</span><span id="v-water">55</span></div>
+          <div class="res-track"><div class="res-fill water" id="b-water" style="width:55%"></div></div>
+        </div>
+        <div class="res-row">
+          <div class="res-lbl"><span>🏠 Shelter</span><span id="v-shelter">0</span></div>
+          <div class="res-track"><div class="res-fill shelter" id="b-shelter" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Unlocked</div>
+        <div class="badge-row" id="unlocks-row"><span style="font-size:.8em;color:var(--muted)">None yet</span></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Known Threats</div>
+        <div id="threats-col"><span style="font-size:.8em;color:var(--muted)">None yet</span></div>
+      </div>
+    </div>
+
+    <!-- ── MAIN PANEL ── -->
+    <div class="main-panel">
+      <!-- storm progress meter (hidden until storm warning) -->
+      <div id="storm-meter" style="display:none">
+        <div class="sm-title" id="sm-title">⛈️ Storm in <span id="sm-days">?</span> days — Shelter needed: <span id="sm-need">?</span></div>
+        <div class="sm-bar-bg"><div class="sm-bar-fill" id="sm-bar" style="background:#ef5350;width:0%"></div></div>
+        <div class="sm-labels"><span>0</span><span id="sm-need-lbl">?</span><span>100</span></div>
+      </div>
+
+      <div>
+        <div class="section-hd">Choose an Action</div>
+        <div id="action-grid"></div>
+      </div>
+
+      <div id="log-box">
+        <div class="section-hd">Today's Activity</div>
+        <div id="log-entries"><div class="log-empty">No actions yet — choose an action above.</div></div>
+      </div>
+
+      <div id="end-day-wrap">
+        <button id="end-day-btn" onclick="endDay()">🌙 End Day &amp; Sleep</button>
+        <div class="end-hint" id="end-hint">You still have daylight left — use it wisely.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ NIGHT MODAL ═══════════════════════════════ -->
+<div id="night-modal">
+  <div class="night-panel">
+    <h2 id="night-title">🌙 Night Falls…</h2>
+    <div id="night-evts"></div>
+    <div class="res-delta-row" id="res-deltas"></div>
+    <div class="night-preview" id="night-preview"></div>
+    <button id="next-day-btn" onclick="nextDay()">☀️ Start Day <span id="nd-num">2</span></button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ GAMEOVER SCREEN ═══════════════════════════ -->
+<div id="gameover" class="screen">
+  <div class="score-card">
+    <div class="result-title" id="go-title">You Didn't Make It</div>
+    <div class="score-big" id="go-score">0</div>
+    <div class="score-sub">Days Survived</div>
+
+    <div id="go-death" class="death-box"></div>
+    <div class="econ-box">
+      <h3>📚 Economics Connection</h3>
+      <p id="go-econ"></p>
+    </div>
+
+    <div class="stats-grid" id="go-stats"></div>
+
+    <div class="go-btns">
+      <button class="btn btn-primary" onclick="startGame()">🔄 Try Again</button>
+      <button class="btn btn-success" onclick="shareScore()">📋 Copy Score</button>
+    </div>
+    <div id="share-box"></div>
+  </div>
+</div>
+
+
+<script>
+/* ═══════════════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════════════ */
+let G = {};
+
+function newGame() {
+  G = {
+    day: 1,
+    hrs: 8,
+
+    // resources (0–100)
+    health: 100,
+    food:   50,
+    water:  55,
+    shelter: 0,
+
+    // unlocks
+    hasFire:       false,
+    hasTools:      false,
+    hasTraps:      false,
+    hasCave:       false,
+    hasSpring:     false,
+    hasSignal:     false,
+
+    // status
+    injured: false,
+    sick:    false,
+
+    // storm schedule (which DAY the storm strikes at END of day)
+    storms: [
+      { day: 5,  req: 35,  pow: 1, done: false },
+      { day: 9,  req: 55,  pow: 2, done: false },
+      { day: 14, req: 72,  pow: 3, done: false },
+    ],
+
+    heatStart: 7, heatEnd: 9,
+
+    // track stats for end screen
+    totalFood: 0, totalWater: 0, totalShelter: 0,
+    timesHungry: 0, timesThirsty: 0,
+    actionsLog: [],   // { day, action, result }
+
+    newUnlocks: new Set(),  // action IDs freshly unlocked
+    deathCause: null,
+    rescued: false,
+  };
+}
+
+
+/* ═══════════════════════════════════════════════════
+   ACTIONS
+═══════════════════════════════════════════════════ */
+const ACTIONS = [
+  {
+    id: 'fish',
+    name: 'Fish',
+    icon: '🎣',
+    desc: 'Spend time at the shore with a makeshift line.',
+    hrs: 2,
+    phase: 1,
+    show: () => true,
+    exec() {
+      const bonus = G.hasTools ? 14 : 0;
+      const gain  = rng(16, 26) + bonus;
+      G.food = cap(G.food + gain);
+      G.totalFood += gain;
+      return {
+        icon: '🎣',
+        txt:  `Caught fish! +${gain} food.`,
+        opp:  G.hasTools ? null : 'Tip: Making tools would improve your fishing by ~14 food per trip.',
+      };
+    },
+  },
+  {
+    id: 'berries',
+    name: 'Gather Berries',
+    icon: '🫐',
+    desc: 'Forage the jungle for edible plants and fruit.',
+    hrs: 1,
+    phase: 1,
+    show: () => true,
+    exec() {
+      if (Math.random() < .15) {
+        G.health = Math.max(0, G.health - 10);
+        return { icon: '🤢', txt: 'Ate a bad berry — stomach cramps. −10 health.', opp: 'Cooking food over a fire eliminates this risk.' };
+      }
+      const gain = rng(10, 18);
+      G.food = cap(G.food + gain);
+      G.totalFood += gain;
+      return { icon: '🫐', txt: `Found berries! +${gain} food.` };
+    },
+  },
+  {
+    id: 'water',
+    name: 'Collect Water',
+    icon: '💧',
+    desc: 'Gather water from a nearby stream.',
+    hrs: 1,
+    phase: 1,
+    show: () => true,
+    exec() {
+      const base  = G.hasSpring ? 32 : (G.hasFire ? 26 : 18);
+      const gain  = rng(base - 3, base + 5);
+      G.water = cap(G.water + gain);
+      G.totalWater += gain;
+      const safe  = G.hasFire || G.hasSpring;
+      if (!safe && Math.random() < .18) {
+        G.sick = true;
+        return { icon: '🤒', txt: `+${gain} water, but untreated water made you feel sick.`, opp: 'Build a fire to boil water and prevent illness.' };
+      }
+      return { icon: '💧', txt: `Collected water! +${gain} water.${safe ? ' (safe ✓)' : ''}` };
+    },
+  },
+  {
+    id: 'shelter',
+    name: 'Build Shelter',
+    icon: '🏕️',
+    desc: 'Gather palm fronds, logs, and vines for shelter.',
+    hrs: 2,
+    phase: 1,
+    show: () => true,
+    exec() {
+      // Diminishing returns
+      let gain;
+      if      (G.shelter <  20) gain = rng(20, 28);
+      else if (G.shelter <  50) gain = rng(13, 19);
+      else if (G.shelter <  75) gain = rng(7,  13);
+      else                      gain = rng(2,   6);
+      G.shelter = cap(G.shelter + gain);
+      G.totalShelter += gain;
+      const note = gain < 8 ? ' (diminishing returns — shelter is strong)' : '';
+      const upcoming = nextStorm();
+      const opp = (upcoming && upcoming.day - G.day <= 2 && G.shelter < upcoming.req)
+        ? `Storm in ${upcoming.day - G.day} day(s) requires shelter ${upcoming.req}+ — keep building!`
+        : null;
+      return { icon: '🏕️', txt: `Built shelter! +${gain} shelter${note}.`, opp };
+    },
+  },
+  {
+    id: 'fire',
+    name: 'Start a Fire',
+    icon: '🔥',
+    desc: 'Collect dry tinder and learn to make fire. Unlocks safe water and nighttime warmth.',
+    hrs: 2,
+    phase: 1,
+    show: () => !G.hasFire,
+    exec() {
+      G.hasFire = true;
+      G.newUnlocks.add('water');
+      return {
+        icon: '🔥',
+        txt:  'Fire started! Water is now safe to drink. Warmth each night.',
+        opp:  'This took 2 hours, but the long-term benefits (health, safe water) are an investment that pays off every day.',
+      };
+    },
+  },
+  {
+    id: 'tools',
+    name: 'Make Tools',
+    icon: '🪓',
+    desc: 'Spend time crafting a spear and better fishing implements. Improves ALL future gathering.',
+    hrs: 3,
+    phase: 1,
+    show: () => !G.hasTools,
+    exec() {
+      G.hasTools = true;
+      G.newUnlocks.add('hunt');
+      return {
+        icon: '🪓',
+        txt:  'Tools crafted! Fishing improved (+14/trip), hunting unlocked.',
+        opp:  '3-hour investment now → every future trip is more productive. Classic economic investment with long-term return.',
+      };
+    },
+  },
+  {
+    id: 'explore',
+    name: 'Explore Island',
+    icon: '🗺️',
+    desc: 'Map the island interior. Might find a freshwater spring — or just useful supplies.',
+    hrs: 2,
+    phase: 1,
+    show: () => !G.hasSpring,
+    exec() {
+      if (Math.random() < .55) {
+        G.hasSpring = true;
+        G.newUnlocks.add('cave');
+        return { icon: '💦', txt: 'Found a freshwater spring! Water collection improved and cave located.', opp: 'Exploration risk paid off — this is like R&D investment in economics.' };
+      }
+      const gain = rng(8, 14);
+      G.food = cap(G.food + gain);
+      G.totalFood += gain;
+      return { icon: '🗺️', txt: `Explored — no spring yet. Found some food (+${gain}).` };
+    },
+  },
+  {
+    id: 'rest',
+    name: 'Rest & Heal',
+    icon: '😴',
+    desc: 'Rest to recover from injuries, illness, and exhaustion.',
+    hrs: 1,
+    phase: 1,
+    show: () => G.health < 92 || G.injured || G.sick,
+    exec() {
+      const heal = G.injured || G.sick ? rng(18, 25) : rng(10, 15);
+      G.injured = false;
+      G.sick    = false;
+      G.health  = cap(G.health + heal);
+      return {
+        icon: '😴',
+        txt:  `Rested. +${heal} health. ${G.injured ? 'Injury cleared.' : ''}${G.sick ? 'Sickness cleared.' : ''}`,
+        opp:  'Health is your most important resource. A sick or injured survivor is unproductive — sometimes resting IS the highest-value use of time.',
+      };
+    },
+  },
+  {
+    id: 'hunt',
+    name: 'Hunt',
+    icon: '🏹',
+    desc: 'Use your spear to hunt game in the jungle. High food reward, real injury risk.',
+    hrs: 3,
+    phase: 2,
+    show: () => G.hasTools,
+    exec() {
+      const gain = rng(38, 58);
+      G.food = cap(G.food + gain);
+      G.totalFood += gain;
+      if (Math.random() < .2) {
+        G.injured = true;
+        G.health  = Math.max(0, G.health - 22);
+        return { icon: '🤕', txt: `Big catch! +${gain} food — but got injured! −22 health.`, opp: 'Risk vs. Reward: hunting yields far more food but carries real costs. How does that affect your next choice?' };
+      }
+      return { icon: '🏹', txt: `Successful hunt! +${gain} food.` };
+    },
+  },
+  {
+    id: 'traps',
+    name: 'Set Traps',
+    icon: '🪤',
+    desc: 'Set snares that passively catch food each night while you sleep.',
+    hrs: 2,
+    phase: 2,
+    show: () => G.hasTools && !G.hasTraps,
+    exec() {
+      G.hasTraps = true;
+      return {
+        icon: '🪤',
+        txt:  'Traps set! You\'ll gain ~12 food automatically each night.',
+        opp:  '2-hour investment → passive income every day you survive. Like buying equipment for a business — upfront cost, ongoing returns.',
+      };
+    },
+  },
+  {
+    id: 'reinforce',
+    name: 'Reinforce Shelter',
+    icon: '🔨',
+    desc: 'Strengthen your shelter against incoming storms. Bigger impact near storm days.',
+    hrs: 2,
+    phase: 2,
+    show: () => G.shelter > 0,
+    exec() {
+      const gain = rng(18, 30);
+      G.shelter = cap(G.shelter + gain);
+      G.totalShelter += gain;
+      const s = nextStorm();
+      const urgency = s && s.day - G.day <= 2 ? ` — STORM IS ${s.day - G.day === 1 ? 'TOMORROW' : 'CLOSE'}!` : '';
+      return {
+        icon: '🔨',
+        txt:  `Shelter reinforced! +${gain} shelter${urgency}`,
+        opp:  'Time spent now on shelter protection is opportunity cost — but the alternative (storm damage) costs far more.',
+      };
+    },
+  },
+  {
+    id: 'cave',
+    name: 'Move to Cave',
+    icon: '⛰️',
+    desc: 'Relocate your camp to the cave you found while exploring. Massive shelter upgrade.',
+    hrs: 2,
+    phase: 2,
+    show: () => G.hasSpring && !G.hasCave,
+    exec() {
+      G.hasCave = true;
+      const gain = 35;
+      G.shelter = cap(G.shelter + gain);
+      G.totalShelter += gain;
+      return {
+        icon: '⛰️',
+        txt:  `Moved to cave! +${gain} shelter. Much better storm protection.`,
+        opp:  'Moving camp had a 2-hour transition cost, but the shelter gain justifies it — switching costs are real in economics too.',
+      };
+    },
+  },
+  {
+    id: 'purify',
+    name: 'Build Purifier',
+    icon: '🧪',
+    desc: 'Construct a permanent water purification system — no more illness risk, better yield.',
+    hrs: 2,
+    phase: 2,
+    show: () => G.hasFire && !G.hasSpring,
+    exec() {
+      G.hasSpring = true;
+      return {
+        icon: '🧪',
+        txt:  'Water purifier built! Water is now always safe and yields more.',
+      };
+    },
+  },
+  {
+    id: 'signal',
+    name: 'Signal Fire',
+    icon: '🚁',
+    desc: 'Build a large signal fire on the hilltop. Each day gives a small chance of rescue.',
+    hrs: 3,
+    phase: 3,
+    show: () => G.hasFire && G.day >= 8 && !G.hasSignal,
+    exec() {
+      G.hasSignal = true;
+      return {
+        icon: '🚁',
+        txt:  'Signal fire built! Each new day now gives a chance of rescue.',
+        opp:  'Investing in escape vs. survival — long-term strategy that sacrifices short-term resources for a future payoff.',
+      };
+    },
+  },
+];
+
+/* ═══════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════ */
+const rng = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const cap = v     => Math.min(100, Math.max(0, Math.round(v)));
+
+function phase() {
+  if (G.day <= 4)  return 1;
+  if (G.day <= 10) return 2;
+  return 3;
+}
+
+function nextStorm() {
+  return G.storms.find(s => !s.done && s.day > G.day) || null;
+}
+
+function currentStorm() {
+  return G.storms.find(s => !s.done && s.day === G.day) || null;
+}
+
+/* ═══════════════════════════════════════════════════
+   SCREEN MANAGEMENT
+═══════════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════
+   START / INIT
+═══════════════════════════════════════════════════ */
+function startGame() {
+  newGame();
+  showScreen('game');
+  render();
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER GAME UI
+═══════════════════════════════════════════════════ */
+function render() {
+  const ph = phase();
+  const phaseNames = { 1:'Phase 1 · Basic Survival', 2:'Phase 2 · Building Up', 3:'Phase 3 · Long-term Survival' };
+  document.getElementById('hdr-day').textContent   = `Day ${G.day}`;
+  document.getElementById('hdr-phase').textContent = phaseNames[ph];
+  document.getElementById('hdr-hrs').textContent   = G.hrs;
+
+  // hour pips
+  const track = document.getElementById('hour-track');
+  track.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const d = document.createElement('div');
+    d.className = 'hour-pip' + (i >= G.hrs ? ' spent' : '');
+    track.appendChild(d);
+  }
+
+  // resource bars
+  ['health','food','water','shelter'].forEach(r => {
+    const val = Math.round(G[r]);
+    document.getElementById(`v-${r}`).textContent = val;
+    const bar = document.getElementById(`b-${r}`);
+    bar.style.width = `${Math.max(0, val)}%`;
+    bar.classList.toggle('crit', val < 20);
+  });
+
+  // unlocks
+  const ul = document.getElementById('unlocks-row');
+  const badges = [];
+  if (G.hasFire)   badges.push(['🔥','Fire']);
+  if (G.hasTools)  badges.push(['🪓','Tools']);
+  if (G.hasTraps)  badges.push(['🪤','Traps']);
+  if (G.hasSpring) badges.push(['💦','Spring']);
+  if (G.hasCave)   badges.push(['⛰️','Cave']);
+  if (G.hasSignal) badges.push(['🚁','Signal']);
+  ul.innerHTML = badges.length
+    ? badges.map(([i,n]) => `<span class="badge">${i} ${n}</span>`).join('')
+    : '<span style="font-size:.8em;color:var(--muted)">None yet</span>';
+
+  // threats
+  const tc = document.getElementById('threats-col');
+  const tlist = G.storms
+    .filter(s => !s.done && s.day > G.day)
+    .map(s => `<div class="threat-item">${s.pow >= 3 ? '🌪️' : '⛈️'} Storm: Day ${s.day} (need shelter ${s.req}+)</div>`);
+  if (G.day >= G.heatStart && G.day <= G.heatEnd)
+    tlist.push(`<div class="threat-item">🌡️ Heat wave — water drains faster</div>`);
+  tc.innerHTML = tlist.length
+    ? tlist.join('')
+    : '<span style="font-size:.8em;color:var(--muted)">None yet</span>';
+
+  // storm meter
+  const s = nextStorm();
+  const sm = document.getElementById('storm-meter');
+  if (s && s.day - G.day <= 3) {
+    sm.style.display = 'block';
+    document.getElementById('sm-days').textContent = s.day - G.day;
+    document.getElementById('sm-need').textContent = s.req;
+    document.getElementById('sm-need-lbl').textContent = s.req;
+    const pct = Math.min(100, (G.shelter / s.req) * 100);
+    const bar = document.getElementById('sm-bar');
+    bar.style.width = pct + '%';
+    bar.style.background = pct >= 100 ? '#43a047' : (pct >= 60 ? '#ffa726' : '#ef5350');
+  } else {
+    sm.style.display = 'none';
+  }
+
+  // event banner
+  renderBanner();
+
+  // actions
+  renderActions(ph);
+
+  // end-day button
+  const btn = document.getElementById('end-day-btn');
+  const hint = document.getElementById('end-hint');
+  if (G.hrs === 0) {
+    btn.textContent = '🌙 Sleep (day complete)';
+    btn.style.background = '#43a047';
+    hint.textContent = 'All daylight used — great!';
+  } else {
+    btn.textContent = `🌙 End Day Early (${G.hrs} hrs wasted)`;
+    btn.style.background = '#4a148c';
+    hint.textContent = G.hrs > 3
+      ? '⚠️ You still have a lot of daylight left — use it!'
+      : 'You can end early, but you\'ll waste usable time.';
+  }
+}
+
+function renderBanner() {
+  const b = document.getElementById('evt-banner');
+  const msgs = [];
+  const s = nextStorm();
+
+  if (s) {
+    const d = s.day - G.day;
+    if (d === 1) msgs.push({ cls:'danger',  txt:`⛈️ STORM TOMORROW! Need shelter ${s.req}+. You have ${G.shelter}.` });
+    if (d === 2) msgs.push({ cls:'warning', txt:`⚠️ Storm in 2 days — need shelter ${s.req}+. You have ${G.shelter}. Build now!` });
+    if (d === 3) msgs.push({ cls:'warning', txt:`⚠️ Storm approaching in 3 days. Target shelter: ${s.req}+.` });
+  }
+  if (G.food   < 20) msgs.push({ cls:'danger',  txt:'🚨 FOOD CRITICAL — You will starve soon!' });
+  if (G.water  < 20) msgs.push({ cls:'danger',  txt:'🚨 WATER CRITICAL — Dehydration is setting in!' });
+  if (G.health < 25) msgs.push({ cls:'danger',  txt:'🚨 HEALTH CRITICAL — Rest or heal immediately!' });
+  if (G.day >= G.heatStart && G.day <= G.heatEnd)
+    msgs.push({ cls:'warning', txt:'🌡️ Extreme heat today — water depletes faster.' });
+
+  if (msgs.length) {
+    b.className = msgs[0].cls;
+    b.textContent = msgs[0].txt;
+  } else {
+    b.className = '';
+    b.textContent = '';
+  }
+}
+
+function renderActions(ph) {
+  const grid = document.getElementById('action-grid');
+  grid.innerHTML = '';
+
+  const visible = ACTIONS.filter(a => a.phase <= ph && a.show());
+  visible.forEach(a => {
+    const avail   = G.hrs >= a.hrs;
+    const isNew   = G.newUnlocks.has(a.id);
+    const card    = document.createElement('div');
+    card.className = 'act-card' + (avail ? '' : ' locked') + (isNew ? ' new-unlock' : '');
+
+    // opportunity cost hint: warn when food/water actions chosen while storm is imminent
+    const s = nextStorm();
+    let opp = '';
+    const foodActions = ['fish','berries','hunt'];
+    if (foodActions.includes(a.id) && s && s.day - G.day <= 2 && G.shelter < s.req) {
+      opp = `⚠️ Opportunity cost: ${a.hrs} hrs here = no shelter-building. Storm in ${s.day - G.day} day(s) needs shelter ${s.req}+.`;
+    }
+
+    card.innerHTML = `
+      <div class="act-icon">${a.icon}</div>
+      <div class="act-name">${a.name}</div>
+      <div class="act-desc">${a.desc}</div>
+      <div class="act-tags">
+        <span class="tag time">⏱ ${a.hrs} hr${a.hrs > 1 ? 's' : ''}</span>
+        ${rewardTag(a)}${riskTag(a)}
+      </div>
+      ${opp ? `<div class="act-opp">${opp}</div>` : ''}
+    `;
+
+    if (avail) card.onclick = () => doAction(a);
+    grid.appendChild(card);
+  });
+}
+
+function rewardTag(a) {
+  const map = {
+    fish:     G.hasTools ? '~+30 food' : '~+20 food',
+    berries:  '~+13 food',
+    water:    G.hasSpring ? '~+30 water' : '~+20 water',
+    shelter:  '~+8–25 shelter',
+    fire:     'Unlock: boiling',
+    tools:    'Upgrade all',
+    explore:  '55% find spring',
+    rest:     '+10–25 health',
+    hunt:     '~+45 food',
+    traps:    '+12 food/night',
+    reinforce:'~+22 shelter',
+    cave:     '+35 shelter',
+    purify:   'Safe water',
+    signal:   'Rescue chance',
+  };
+  const v = map[a.id];
+  return v ? `<span class="tag reward">${v}</span>` : '';
+}
+
+function riskTag(a) {
+  const map = {
+    berries: '15% sick',
+    water:   G.hasFire || G.hasSpring ? '' : '18% illness',
+    hunt:    '20% injury',
+    explore: 'Uncertain',
+  };
+  const v = map[a.id];
+  return v ? `<span class="tag risk">${v}</span>` : '';
+}
+
+/* ═══════════════════════════════════════════════════
+   PERFORM ACTION
+═══════════════════════════════════════════════════ */
+function doAction(a) {
+  if (G.hrs < a.hrs) return;
+  G.hrs -= a.hrs;
+  G.newUnlocks.delete(a.id);
+
+  const r = a.exec();
+  G.actionsLog.push({ day: G.day, action: a.name, result: r.txt });
+  addLog(r.icon, r.txt, r.opp || null);
+
+  if (G.health <= 0) { endGame('health'); return; }
+  if (G.hrs === 0)   { render(); setTimeout(endDay, 600); return; }
+  render();
+}
+
+function addLog(icon, txt, opp) {
+  const c = document.getElementById('log-entries');
+  if (c.querySelector('.log-empty')) c.innerHTML = '';
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span>${icon}</span><span>${txt}</span>`;
+  c.appendChild(line);
+  if (opp) {
+    const o = document.createElement('div');
+    o.className = 'log-opp';
+    o.textContent = `💡 ${opp}`;
+    c.appendChild(o);
+  }
+  c.scrollTop = c.scrollHeight;
+}
+
+/* ═══════════════════════════════════════════════════
+   END DAY → NIGHT PROCESSING
+═══════════════════════════════════════════════════ */
+function endDay() {
+  const snap = { h: G.health, f: G.food, w: G.water };
+  const evts = [];
+
+  // Daily consumption
+  const waterCost = (G.day >= G.heatStart && G.day <= G.heatEnd) ? 28 : 18;
+  G.food  = Math.max(0, G.food  - 12);
+  G.water = Math.max(0, G.water - waterCost);
+
+  // Traps
+  if (G.hasTraps) {
+    const bonus = rng(10, 16);
+    G.food = cap(G.food + bonus);
+    evts.push({ cls:'good', txt:`🪤 Traps worked! +${bonus} food while you slept.` });
+  }
+
+  // Storm hits tonight?
+  const s = currentStorm();
+  if (s) {
+    s.done = true;
+    const dmg = stormDamage(s);
+    evts.push({ cls: dmg >= 40 ? 'danger' : (dmg >= 15 ? 'warning' : 'good'), txt: stormMsg(s, dmg) });
+    G.health  = Math.max(0, G.health - dmg);
+    G.shelter = Math.max(0, G.shelter - Math.floor(dmg / 4));
+  }
+
+  // Starvation / dehydration
+  if (G.food <= 0) {
+    G.timesHungry++;
+    const dmg = 20;
+    G.health = Math.max(0, G.health - dmg);
+    evts.push({ cls:'danger', txt:`🍽️ No food! Starvation: −${dmg} health.` });
+  }
+  if (G.water <= 0) {
+    G.timesThirsty++;
+    const dmg = 30;
+    G.health = Math.max(0, G.health - dmg);
+    evts.push({ cls:'danger', txt:`💧 No water! Dehydration: −${dmg} health.` });
+  }
+
+  // Exposure
+  if (G.shelter < 10) {
+    const dmg = 8;
+    G.health = Math.max(0, G.health - dmg);
+    evts.push({ cls:'warning', txt:`🌧️ Sleeping exposed to the elements: −${dmg} health.` });
+  } else if (G.hasFire) {
+    const gain = 5;
+    G.health = cap(G.health + gain);
+    evts.push({ cls:'good', txt:`🔥 Fire kept you warm through the night: +${gain} health.` });
+  }
+
+  // Injury tick
+  if (G.injured) {
+    G.health = Math.max(0, G.health - 5);
+    evts.push({ cls:'warning', txt:'🤕 Untreated injury worsened overnight: −5 health. Rest to recover.' });
+  }
+
+  // Signal fire rescue attempt
+  if (G.hasSignal) {
+    const chance = Math.min(.04 + (G.day - 8) * .008, .12);
+    if (Math.random() < chance) {
+      showNightModal(evts, snap, true);
+      return;
+    }
+  }
+
+  // Random events after day 12
+  if (G.day >= 12) randomEvent(evts);
+
+  // Heat warning
+  if (G.day === G.heatStart - 1)
+    evts.push({ cls:'warning', txt:'🌡️ Tomorrow starts a heat wave — water will deplete faster for 3 days.' });
+
+  if (evts.length === 0)
+    evts.push({ cls:'info', txt:'🌙 A quiet night. You wake up tired but alive.' });
+
+  showNightModal(evts, snap, false);
+}
+
+function stormDamage(s) {
+  if      (s.pow === 1) {
+    if      (G.shelter >= 35) return rng(3, 8);
+    else if (G.shelter >= 20) return rng(22, 32);
+    else                      return rng(40, 52);
+  } else if (s.pow === 2) {
+    if      (G.shelter >= 55) return rng(5, 12);
+    else if (G.shelter >= 35) return rng(28, 40);
+    else                      return rng(50, 65);
+  } else {
+    if      (G.shelter >= 72) return rng(8, 16);
+    else if (G.shelter >= 50) return rng(38, 52);
+    else                      return rng(60, 80);
+  }
+}
+
+function stormMsg(s, dmg) {
+  const label = s.pow >= 3 ? '🌪️ MAJOR STORM' : '⛈️ Storm';
+  if (dmg < 15) return `${label} passed — shelter (${G.shelter}) protected you well! Minor damage: −${dmg} health.`;
+  if (dmg < 40) return `${label} hit! Your shelter (${G.shelter}) gave partial protection. −${dmg} health.`;
+  return `${label} was devastating! Shelter (${G.shelter}) was too weak — need ${s.req}+. −${dmg} health.`;
+}
+
+function randomEvent(evts) {
+  const pool = [
+    {w: 15, fn() {
+      const g = rng(18,28); G.food = cap(G.food + g);
+      evts.push({ cls:'good', txt:`🌴 A palm tree fell in the night — coconuts everywhere! +${g} food.` });
+    }},
+    {w: 12, fn() {
+      const d = rng(12,20); G.water = Math.max(0, G.water - d);
+      evts.push({ cls:'warning', txt:`☀️ Drought overnight — your water supply reduced: −${d} water.` });
+    }},
+    {w: 10, fn() {
+      if (!G.sick) { G.sick = true; G.health = Math.max(0, G.health - 12);
+        evts.push({ cls:'danger', txt:'🤒 Woke up sick! −12 health. Rest to cure illness.' }); }
+    }},
+    {w: 10, fn() {
+      if (G.shelter > 10) { const d = rng(8,14); G.shelter = Math.max(0, G.shelter - d);
+        evts.push({ cls:'warning', txt:`🌊 Rogue wave damaged your shelter: −${d} shelter.` }); }
+    }},
+    {w: 14, fn() {
+      const g = rng(12,22); G.water = cap(G.water + g);
+      evts.push({ cls:'good', txt:`🌧️ Overnight rain collected in your containers! +${g} water.` });
+    }},
+    {w: 8, fn() {
+      const g = rng(15,22); G.food = cap(G.food + g);
+      evts.push({ cls:'good', txt:`🐟 Traps caught more than expected (+${g} food).` });
+    }},
+  ];
+  const total = pool.reduce((a,e) => a + e.w, 0);
+  let roll = Math.random() * total;
+  for (const e of pool) {
+    roll -= e.w;
+    if (roll <= 0) { e.fn(); return; }
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   NIGHT MODAL
+═══════════════════════════════════════════════════ */
+function showNightModal(evts, snap, rescued) {
+  document.getElementById('night-title').textContent = rescued ? '🚁 Rescue!' : `🌙 Night of Day ${G.day}`;
+  document.getElementById('nd-num').textContent = G.day + 1;
+
+  // events
+  const ec = document.getElementById('night-evts');
+  ec.innerHTML = evts.map(e => `<div class="night-evt ${e.cls}">${e.txt}</div>`).join('');
+
+  // deltas
+  const dc = document.getElementById('res-deltas');
+  const pairs = [
+    { icon:'🍖', lbl:'Food',   d: G.food   - snap.f },
+    { icon:'💧', lbl:'Water',  d: G.water  - snap.w },
+    { icon:'❤️', lbl:'Health', d: G.health - snap.h },
+  ];
+  dc.innerHTML = pairs.map(p =>
+    `<div class="rdelta ${p.d >= 0 ? 'pos' : 'neg'}">${p.icon} ${p.lbl}: ${p.d >= 0 ? '+' : ''}${Math.round(p.d)}</div>`
+  ).join('');
+
+  // preview
+  const ns = nextStorm();
+  let preview = '';
+  if (rescued) {
+    preview = '🚁 A ship spotted your signal fire! You\'re going home!';
+  } else if (G.health <= 0) {
+    preview = '💀 You did not survive the night…';
+  } else if (ns && ns.day === G.day + 1) {
+    preview = `⚠️ STORM HITS TOMORROW — shelter is at ${G.shelter}, need ${ns.req}+.`;
+  } else if (G.food < 25) {
+    preview = `🍖 Food is critically low. Prioritize gathering tomorrow.`;
+  } else if (G.water < 25) {
+    preview = `💧 Water is critically low. Find water first tomorrow.`;
+  } else {
+    preview = `Day ${G.day + 1} begins. You have 8 hours of daylight.`;
+  }
+  document.getElementById('night-preview').textContent = preview;
+
+  // show/hide next-day button
+  const btn = document.getElementById('next-day-btn');
+  if (rescued) {
+    btn.textContent = '🎉 See Your Score';
+    btn.onclick = () => { G.rescued = true; endGame('rescued'); };
+  } else if (G.health <= 0) {
+    btn.textContent = '💀 View Results';
+    btn.onclick = () => endGame(deathCause());
+  } else {
+    btn.textContent = `☀️ Start Day ${G.day + 1}`;
+    btn.onclick = nextDay;
+  }
+
+  document.getElementById('night-modal').classList.add('open');
+}
+
+function nextDay() {
+  document.getElementById('night-modal').classList.remove('open');
+  G.day++;
+  G.hrs = 8;
+  document.getElementById('log-entries').innerHTML = '<div class="log-empty">No actions yet — choose an action above.</div>';
+  render();
+}
+
+function deathCause() {
+  if (G.water <= 0)           return 'dehydration';
+  if (G.food  <= 0)           return 'starvation';
+  return 'injury';
+}
+
+/* ═══════════════════════════════════════════════════
+   END GAME
+═══════════════════════════════════════════════════ */
+function endGame(cause) {
+  document.getElementById('night-modal').classList.remove('open');
+  G.deathCause = cause;
+  const days = G.day;
+
+  // title
+  let title, emoji;
+  if      (cause === 'rescued')      { title = 'RESCUED!';           emoji = '🚁'; }
+  else if (days >= 20)               { title = 'Exceptional Survivor!'; emoji = '🏆'; }
+  else if (days >= 14)               { title = 'Skilled Survivor';    emoji = '⭐'; }
+  else if (days >= 8)                { title = 'Adequate Survivor';   emoji = '📈'; }
+  else if (days >= 4)                { title = 'Struggling Survivor'; emoji = '⚠️'; }
+  else                               { title = 'Survival Is Hard!';   emoji = '💡'; }
+
+  document.getElementById('go-title').textContent = `${emoji} ${title}`;
+  document.getElementById('go-score').textContent = days;
+
+  // death / rescue message
+  const deathBox = document.getElementById('go-death');
+  const msgs = {
+    dehydration: 'You died of dehydration. The human body can only survive ~3 days without water. No matter how much food or shelter you had, water was the limiting resource.',
+    starvation:  'You died of starvation. Food ran out — you needed to allocate more time to gathering or invest in traps for passive food income.',
+    injury:      'Your health reached zero from injuries, illness, and exposure. Shelter, rest, and fire are not optional comforts — they are life-critical needs.',
+    rescued:     `A ship spotted your signal fire on Day ${days}! You were rescued! All that investment in survival paid off.`,
+  };
+  deathBox.className = `death-box ${cause === 'rescued' ? 'rescued' : ''}`;
+  deathBox.innerHTML = `<strong>${cause === 'rescued' ? '🎉 Success:' : '📋 What happened:'}</strong><br>${msgs[cause] || msgs.injury}`;
+
+  // econ lesson
+  const lessons = {
+    dehydration: 'You experienced the economics of <strong>basic needs vs. wants</strong>. Water is a necessity — no amount of shelter or food investment can compensate for ignoring it. Economists call this a "lexicographic preference": some needs must be met first before others matter at all.',
+    starvation:  'You experienced the cost of <strong>short-term vs. long-term trade-offs</strong>. Investing in shelter and tools without maintaining daily food intake is a planning failure. In economics, firms must keep cash flow positive even while investing in future capacity.',
+    injury:      'You experienced the value of <strong>human capital</strong>. Your health was your productive capacity. Just as a factory cannot produce if its machines break down, you cannot survive if you neglect your physical condition. Health is an asset that requires maintenance investment.',
+    rescued:     'You demonstrated <strong>strategic long-term investment</strong>. The signal fire cost 3 hours upfront but created a daily chance of rescue — a classic delayed-gratification investment. The longer you survived, the higher the rescue probability grew, showing how investment returns can compound over time.',
+  };
+  document.getElementById('go-econ').innerHTML = lessons[cause] || lessons.injury;
+
+  // stats grid
+  const stats = [
+    ['🎯 Days Survived',       days],
+    ['🍖 Total Food Gathered', G.totalFood],
+    ['💧 Total Water Gathered', G.totalWater],
+    ['🏠 Total Shelter Built',  G.totalShelter],
+    ['🔥 Fire Built',          G.hasFire  ? 'Yes' : 'No — big mistake'],
+    ['🪓 Tools Made',          G.hasTools ? 'Yes' : 'No'],
+    ['🪤 Traps Set',           G.hasTraps ? 'Yes' : 'No'],
+    ['🚁 Signal Fire',         G.hasSignal ? 'Yes' : 'No'],
+  ];
+  document.getElementById('go-stats').innerHTML = stats.map(([l,v]) =>
+    `<div class="stat-item"><strong>${l}</strong>${v}</div>`
+  ).join('');
+
+  showScreen('gameover');
+}
+
+/* ═══════════════════════════════════════════════════
+   SHARE SCORE
+═══════════════════════════════════════════════════ */
+function shareScore() {
+  const d = G.day;
+  let tier;
+  if      (G.rescued)  tier = '🚁 Got Rescued!';
+  else if (d >= 20)    tier = '🏆 Exceptional Survivor';
+  else if (d >= 14)    tier = '⭐ Skilled Survivor';
+  else if (d >= 8)     tier = '📈 Adequate Survivor';
+  else                 tier = '💡 Still learning...';
+
+  const txt = `🏝️ Island Survivor: Economics Challenge\nI survived ${d} day${d !== 1 ? 's' : ''}! ${tier}\nCan you beat my score?\n#IslandSurvivor #EconClass`;
+  const box = document.getElementById('share-box');
+  box.style.display = 'block';
+  box.textContent = txt;
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => {});
+}
+
+/* ─── init ─── */
+document.addEventListener('DOMContentLoaded', () => showScreen('intro'));
+</script>
+</body>
+</html>
