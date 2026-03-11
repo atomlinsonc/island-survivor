@@ -1259,7 +1259,6 @@ function randomEvent(evts) {
 ═══════════════════════════════════════════════════ */
 function showNightModal(evts, snap, rescued) {
   document.getElementById('night-title').textContent = rescued ? '🚁 Rescue!' : `🌙 Night of Day ${G.day}`;
-  document.getElementById('nd-num').textContent = G.day + 1;
 
   // events
   const ec = document.getElementById('night-evts');
