@@ -336,8 +336,8 @@ function newGame() {
 
     // resources 0–100
     health:  100,
-    food:    35,
-    water:   38,
+    food:    22,
+    water:   26,
     shelter: 0,
 
     // basic unlocks
@@ -355,12 +355,13 @@ function newGame() {
 
     // storms: hit at END of listed day
     storms: [
-      { day:4,  req:28, pow:1, done:false },
-      { day:8,  req:50, pow:2, done:false },
-      { day:13, req:68, pow:3, done:false },
-      { day:19, req:82, pow:4, done:false },
+      { day:3,  req:25, pow:1, done:false },
+      { day:7,  req:48, pow:2, done:false },
+      { day:12, req:65, pow:3, done:false },
+      { day:18, req:80, pow:4, done:false },
+      { day:24, req:92, pow:5, done:false },
     ],
-    heatStart: 7, heatEnd: 9,
+    heatStart: 6, heatEnd: 9,
 
     // exploration
     deepExplores: 0,
@@ -394,11 +395,11 @@ const ACTIONS = [
     desc:'Spend time at the shore with a makeshift line.',
     show:()=>true,
     exec() {
-      const bonus = G.hasTools ? 12 : 0;
-      const gain  = rng(13,21) + bonus;
+      const bonus = G.hasTools ? 10 : 0;
+      const gain  = rng(9,15) + bonus;
       G.food = cap(G.food + gain); G.totalFood += gain;
       return { icon:'🎣', txt:`Caught fish! +${gain} food.`,
-        opp: G.hasTools ? null : 'Tools would improve fishing by ~12 food per trip — a classic investment.' };
+        opp: G.hasTools ? null : 'Tools would improve fishing by ~10 food per trip — a classic investment.' };
     },
   },
   {
@@ -406,11 +407,11 @@ const ACTIONS = [
     desc:'Forage the jungle for edible plants and fruit.',
     show:()=>true,
     exec() {
-      if (Math.random() < .22) {
-        G.health = Math.max(0, G.health - 12);
-        return { icon:'🤢', txt:'Ate a poisonous berry — severe cramps. −12 health.', opp:'Cooking over a fire eliminates this risk.' };
+      if (Math.random() < .32) {
+        G.health = Math.max(0, G.health - 18);
+        return { icon:'🤢', txt:'Ate a poisonous berry — severe cramps. −18 health.', opp:'Cooking over a fire eliminates this risk.' };
       }
-      const gain = rng(8,15); G.food = cap(G.food + gain); G.totalFood += gain;
+      const gain = rng(5,10); G.food = cap(G.food + gain); G.totalFood += gain;
       return { icon:'🫐', txt:`Found berries! +${gain} food.` };
     },
   },
@@ -419,10 +420,10 @@ const ACTIONS = [
     desc:'Gather water from a nearby stream.',
     show:()=>true,
     exec() {
-      const base = G.hasSpring ? 26 : (G.hasFire ? 20 : 14);
-      const gain = rng(base-2, base+5);
+      const base = G.hasSpring ? 20 : (G.hasFire ? 15 : 10);
+      const gain = rng(base-2, base+4);
       G.water = cap(G.water + gain); G.totalWater += gain;
-      if (!(G.hasFire || G.hasSpring) && Math.random() < .25) {
+      if (!(G.hasFire || G.hasSpring) && Math.random() < .35) {
         G.sick = true;
         return { icon:'🤒', txt:`+${gain} water, but untreated water made you sick.`, opp:'Build a fire to boil water — illness drains your health over time.' };
       }
@@ -435,10 +436,10 @@ const ACTIONS = [
     show:()=>true,
     exec() {
       let gain;
-      if      (G.shelter < 20) gain = rng(18,26);
-      else if (G.shelter < 50) gain = rng(11,17);
-      else if (G.shelter < 75) gain = rng(5,10);
-      else                     gain = rng(2,4);
+      if      (G.shelter < 20) gain = rng(13,20);
+      else if (G.shelter < 50) gain = rng(8,13);
+      else if (G.shelter < 75) gain = rng(3,7);
+      else                     gain = rng(1,3);
       G.shelter = cap(G.shelter + gain); G.totalShelter += gain;
       const note = gain <= 4 ? ' (diminishing returns)' : '';
       const s = nextStorm();
@@ -448,23 +449,23 @@ const ACTIONS = [
     },
   },
   {
-    id:'fire', name:'Start a Fire', icon:'🔥', hrs:2, phase:1,
+    id:'fire', name:'Start a Fire', icon:'🔥', hrs:3, phase:1,
     desc:'Collect dry tinder and start a fire. Safe water, warmth, and cooking.',
     show:()=>!G.hasFire,
     exec() {
       G.hasFire = true;
       return { icon:'🔥', txt:'Fire started! Water is now safe. Warmth at night.',
-        opp:'2 hrs now → safe water and health every night. Classic long-term investment.' };
+        opp:'3 hrs now → safe water and health every night. Classic long-term investment.' };
     },
   },
   {
-    id:'tools', name:'Make Tools', icon:'🪓', hrs:3, phase:1,
+    id:'tools', name:'Make Tools', icon:'🪓', hrs:4, phase:1,
     desc:'Craft a spear and better fishing gear. Improves all future gathering.',
     show:()=>!G.hasTools,
     exec() {
       G.hasTools = true; G.newUnlocks.add('hunt');
-      return { icon:'🪓', txt:'Tools crafted! Fishing improved (+12/trip), hunting unlocked.',
-        opp:'3-hour investment → every future gathering trip is more productive. The economic logic of capital investment.' };
+      return { icon:'🪓', txt:'Tools crafted! Fishing improved (+10/trip), hunting unlocked.',
+        opp:'4-hour investment — half a day gone. But every future gathering trip is more productive. The economic logic of capital investment.' };
     },
   },
   {
@@ -472,24 +473,24 @@ const ACTIONS = [
     desc:'Map the island looking for a freshwater spring.',
     show:()=>!G.hasSpring,
     exec() {
-      if (Math.random() < .45) {
+      if (Math.random() < .35) {
         G.hasSpring = true; G.newUnlocks.add('cave');
         return { icon:'💦', txt:'Found a freshwater spring! Water yield improved.', opp:'Exploration paid off — like R&D in economics.' };
       }
-      const gain = rng(6,12); G.food = cap(G.food + gain); G.totalFood += gain;
+      const gain = rng(4,8); G.food = cap(G.food + gain); G.totalFood += gain;
       return { icon:'🗺️', txt:`Explored — no spring yet. Found food (+${gain}).` };
     },
   },
   {
-    id:'rest', name:'Rest & Heal', icon:'😴', hrs:1, phase:1,
+    id:'rest', name:'Rest & Heal', icon:'😴', hrs:2, phase:1,
     desc:'Rest to recover health, clear injuries and illness.',
     show:()=> G.health < 90 || G.injured || G.sick,
     exec() {
-      const heal = G.injured || G.sick ? rng(18,25) : rng(10,15);
+      const heal = G.injured || G.sick ? rng(12,18) : rng(7,12);
       G.injured = false; G.sick = false;
       G.health = cap(G.health + heal);
       return { icon:'😴', txt:`Rested. +${heal} health. Status effects cleared.`,
-        opp:'A healthy survivor is more productive. Sometimes rest IS the highest-value action.' };
+        opp:'A healthy survivor is more productive. But 2 hrs to rest is a real sacrifice.' };
     },
   },
 
@@ -499,23 +500,23 @@ const ACTIONS = [
     desc:'Use your spear to hunt game. High reward — real injury risk.',
     show:()=>G.hasTools,
     exec() {
-      const gain = rng(30,48); G.food = cap(G.food + gain); G.totalFood += gain;
-      if (Math.random() < .28) {
-        G.injured = true; G.health = Math.max(0,G.health - 26);
-        return { icon:'🤕', txt:`Big catch! +${gain} food — but injured! −26 health.`,
-          opp:'Risk vs. Reward: hunting gives far more food but injury sets back your whole operation.' };
+      const gain = rng(22,36); G.food = cap(G.food + gain); G.totalFood += gain;
+      if (Math.random() < .38) {
+        G.injured = true; G.health = Math.max(0,G.health - 35);
+        return { icon:'🤕', txt:`Big catch! +${gain} food — but seriously injured! −35 health.`,
+          opp:'Risk vs. Reward: hunting gives more food but a bad injury can be fatal without rest time.' };
       }
       return { icon:'🏹', txt:`Successful hunt! +${gain} food.` };
     },
   },
   {
-    id:'traps', name:'Set Traps', icon:'🪤', hrs:2, phase:2,
+    id:'traps', name:'Set Traps', icon:'🪤', hrs:3, phase:2,
     desc:'Set snares for passive food income every night.',
     show:()=>G.hasTools && !G.hasTraps,
     exec() {
       G.hasTraps = true;
-      return { icon:'🪤', txt:"Traps set! You'll gain ~10 food passively each night.",
-        opp:'2-hour investment → passive income every day. Like buying equipment — upfront cost, ongoing return.' };
+      return { icon:'🪤', txt:"Traps set! You'll gain ~7 food passively each night.",
+        opp:'3-hour investment → passive income every day. Like buying equipment — upfront cost, ongoing return.' };
     },
   },
   {
@@ -523,7 +524,7 @@ const ACTIONS = [
     desc:'Strengthen shelter against storms.',
     show:()=>G.shelter > 0,
     exec() {
-      const gain = rng(16,28); G.shelter = cap(G.shelter + gain); G.totalShelter += gain;
+      const gain = rng(12,20); G.shelter = cap(G.shelter + gain); G.totalShelter += gain;
       const s = nextStorm();
       const urgent = s && s.day - G.day <= 2 ? ` — STORM ${s.day - G.day === 1 ? 'TOMORROW' : 'IN 2 DAYS'}!` : '';
       return { icon:'🔨', txt:`Shelter reinforced! +${gain} shelter${urgent}`,
@@ -531,18 +532,18 @@ const ACTIONS = [
     },
   },
   {
-    id:'cave', name:'Move to Cave', icon:'⛰️', hrs:2, phase:2,
+    id:'cave', name:'Move to Cave', icon:'⛰️', hrs:3, phase:2,
     desc:'Relocate camp to the cave. Major shelter upgrade.',
     show:()=>G.hasSpring && !G.hasCave,
     exec() {
-      G.hasCave = true; const gain = 35;
+      G.hasCave = true; const gain = 28;
       G.shelter = cap(G.shelter + gain); G.totalShelter += gain;
       return { icon:'⛰️', txt:`Moved to cave! +${gain} shelter.`,
-        opp:'Switching costs are real — 2 hrs to move — but the shelter gain is massive.' };
+        opp:'Switching costs are real — 3 hrs to move — but the shelter gain is significant.' };
     },
   },
   {
-    id:'purify', name:'Build Purifier', icon:'🧪', hrs:2, phase:2,
+    id:'purify', name:'Build Purifier', icon:'🧪', hrs:3, phase:2,
     desc:'Permanent water purification — no illness, better yield.',
     show:()=>G.hasFire && !G.hasSpring,
     exec() {
@@ -573,7 +574,7 @@ const ACTIONS = [
       }
 
       // Nothing special
-      const gain = rng(8,18); G.food = cap(G.food + gain); G.totalFood += gain;
+      const gain = rng(5,12); G.food = cap(G.food + gain); G.totalFood += gain;
       const hint = G.deepExplores === 1 ? ' You notice strange symbols carved into the trees…' : '';
       return { icon:'🌿', txt:`Deep exploration — found food (+${gain}).${hint}` };
     },
@@ -585,11 +586,11 @@ const ACTIONS = [
     desc:'Offer food to the tribe as a gesture of peace. Costs 15 food.',
     show:()=>G.tribeFound,
     exec() {
-      if (G.food < 15) return { icon:'😰', txt:'Not enough food to offer. The tribe watches suspiciously.' };
-      G.food = Math.max(0, G.food - 15); G.totalFood -= 15;
-      const gain = rng(18,26); G.tribeFavor = Math.min(100, G.tribeFavor + gain);
+      if (G.food < 20) return { icon:'😰', txt:'Not enough food to offer. The tribe watches suspiciously.' };
+      G.food = Math.max(0, G.food - 20); G.totalFood -= 20;
+      const gain = rng(14,20); G.tribeFavor = Math.min(100, G.tribeFavor + gain);
       return { icon:'🎁', txt:`You offered food to the tribe. +${gain} favor.`,
-        opp:'Giving up 15 food (short-term cost) to gain favor (long-term social capital). Classic investment logic.' };
+        opp:'Giving up 20 food (short-term cost) to gain favor (long-term social capital). Classic investment logic.' };
     },
   },
   {
@@ -869,21 +870,21 @@ function renderActions(ph) {
 
 function rewardTag(a) {
   const map = {
-    fish:          G.hasTools ? '~+25 food' : '~+17 food',
-    berries:       '~+11 food',
-    water:         G.hasSpring ? '~+28 water' : '~+16 water',
-    shelter:       '~+5–24 shelter',
+    fish:          G.hasTools ? '~+22 food' : '~+12 food',
+    berries:       '~+7 food',
+    water:         G.hasSpring ? '~+22 water' : '~+12 water',
+    shelter:       '~+3–16 shelter',
     fire:          'Safe water + warmth',
     tools:         'Upgrade all gathering',
-    explore:       '45% find spring',
-    rest:          '+10–25 health',
-    hunt:          '~+38 food',
-    traps:         '+10 food/night',
-    reinforce:     '~+22 shelter',
-    cave:          '+35 shelter',
+    explore:       '35% find spring',
+    rest:          '+7–18 health',
+    hunt:          '~+29 food',
+    traps:         '+6 food/night',
+    reinforce:     '~+16 shelter',
+    cave:          '+28 shelter',
     purify:        'Safe water',
     deep_explore:  '? Could be anything',
-    offer_tribe:   '+~22 favor (−15 food)',
+    offer_tribe:   '+~17 favor (−20 food)',
     learn_dance:   '+~18 favor',
     challenge_chief: G.tribeFavor >= 65 ? '👑 BECOME GOD' : (G.tribeFavor >= 50 ? '⚠️ Risky' : '💀 LETHAL'),
     study_asteroid:  '+6 health + progress',
@@ -899,9 +900,9 @@ function isCosmic(id)    { return ['study_asteroid','channel_power'].includes(id
 
 function riskTag(a) {
   const map = {
-    berries:        '22% poisoning',
-    water:          (G.hasFire||G.hasSpring) ? '' : '25% illness',
-    hunt:           '28% injury',
+    berries:        '32% poisoning',
+    water:          (G.hasFire||G.hasSpring) ? '' : '35% illness',
+    hunt:           '38% injury',
     explore:        'Uncertain outcome',
     deep_explore:   'Unknown risk',
     learn_dance:    '12% offend tribe',
@@ -954,13 +955,13 @@ function endDay() {
   const evts = [];
 
   // Consumption
-  const waterCost = (G.day >= G.heatStart && G.day <= G.heatEnd) ? 32 : 22;
-  G.food  = Math.max(0, G.food  - 16);
+  const waterCost = (G.day >= G.heatStart && G.day <= G.heatEnd) ? 38 : 26;
+  G.food  = Math.max(0, G.food  - 20);
   G.water = Math.max(0, G.water - waterCost);
 
   // Traps
   if (G.hasTraps) {
-    const bonus = rng(8,14); G.food = cap(G.food + bonus);
+    const bonus = rng(4,8); G.food = cap(G.food + bonus);
     evts.push({ cls:'good', txt:`🪤 Traps caught food overnight! +${bonus} food.` });
   }
 
@@ -977,46 +978,47 @@ function endDay() {
   // Starvation
   if (G.food <= 0) {
     G.timesHungry++;
-    G.health = Math.max(0, G.health - 25);
-    evts.push({ cls:'danger', txt:'🍽️ No food! Starvation: −25 health.' });
+    G.health = Math.max(0, G.health - 35);
+    evts.push({ cls:'danger', txt:'🍽️ No food! Starvation: −35 health.' });
   }
 
   // Dehydration
   if (G.water <= 0) {
     G.timesThirsty++;
-    G.health = Math.max(0, G.health - 35);
-    evts.push({ cls:'danger', txt:'💧 No water! Dehydration: −35 health.' });
+    G.health = Math.max(0, G.health - 45);
+    evts.push({ cls:'danger', txt:'💧 No water! Severe dehydration: −45 health.' });
   }
 
   // Exposure
   if (G.shelter < 10) {
-    G.health = Math.max(0, G.health - 14);
-    evts.push({ cls:'warning', txt:'🌧️ Sleeping exposed to the elements: −14 health.' });
+    G.health = Math.max(0, G.health - 22);
+    evts.push({ cls:'warning', txt:'🌧️ Sleeping fully exposed to the elements: −22 health.' });
   } else if (G.hasFire) {
-    G.health = cap(G.health + 4);
-    evts.push({ cls:'good', txt:'🔥 Fire kept you warm: +4 health.' });
+    G.health = cap(G.health + 3);
+    evts.push({ cls:'good', txt:'🔥 Fire kept you warm: +3 health.' });
   }
 
   // Injury tick
   if (G.injured) {
-    G.health = Math.max(0, G.health - 8);
-    evts.push({ cls:'warning', txt:'🤕 Untreated injury worsened: −8 health. Rest soon.' });
+    G.health = Math.max(0, G.health - 14);
+    evts.push({ cls:'warning', txt:'🤕 Untreated injury worsened: −14 health. Rest NOW.' });
   }
 
   // Sick tick
   if (G.sick) {
-    G.health = Math.max(0, G.health - 6);
-    evts.push({ cls:'warning', txt:'🤒 Illness persists: −6 health. Rest to recover.' });
+    G.health = Math.max(0, G.health - 12);
+    evts.push({ cls:'warning', txt:'🤒 Illness persists: −12 health. Rest to recover.' });
   }
 
   // Tribe night events
   if (G.tribeFound) {
     const daysSinceMet = G.day - G.tribeFoundDay;
     if (G.tribeFavor < 20 && daysSinceMet >= 1) {
-      if (Math.random() < .35) {
-        const stolen = rng(12, 22); G.food = Math.max(0, G.food - stolen);
-        const favLoss = rng(3,8); G.tribeFavor = Math.max(0, G.tribeFavor - favLoss);
-        evts.push({ cls:'tribe', txt:`🗿 Tribal raiders stole supplies in the night! −${stolen} food, −${favLoss} favor.` });
+      if (Math.random() < .50) {
+        const stolen = rng(18, 30); G.food = Math.max(0, G.food - stolen);
+        const waterStolen = rng(8, 16); G.water = Math.max(0, G.water - waterStolen);
+        const favLoss = rng(5,12); G.tribeFavor = Math.max(0, G.tribeFavor - favLoss);
+        evts.push({ cls:'tribe', txt:`🗿 Tribal raiders ransacked your camp! −${stolen} food, −${waterStolen} water, −${favLoss} favor.` });
       }
     } else if (G.tribeFavor >= 50 && Math.random() < .25) {
       const gift = rng(8,16); G.food = cap(G.food + gift);
@@ -1039,12 +1041,12 @@ function endDay() {
     }
   }
 
-  // Random events from day 10+
-  if (G.day >= 10) randomEvent(evts);
+  // Random events from day 7+
+  if (G.day >= 7) randomEvent(evts);
 
   // Heat warning
   if (G.day === G.heatStart - 1)
-    evts.push({ cls:'warning', txt:'🌡️ Tomorrow a heat wave begins — water will drain much faster for 3 days.' });
+    evts.push({ cls:'warning', txt:'🌡️ Tomorrow a heat wave begins — water will drain much faster for 4 days.' });
 
   if (evts.length === 0)
     evts.push({ cls:'info', txt:'🌙 A quiet night. You wake up exhausted but alive.' });
@@ -1055,26 +1057,30 @@ function endDay() {
 function stormDamage(s) {
   const sh = G.shelter;
   if (s.pow === 1) {
-    if      (sh >= 28) return rng(4,9);
-    else if (sh >= 15) return rng(25,38);
-    else               return rng(42,58);
+    if      (sh >= 25) return rng(6,14);
+    else if (sh >= 12) return rng(32,48);
+    else               return rng(55,72);
   } else if (s.pow === 2) {
-    if      (sh >= 50) return rng(6,14);
-    else if (sh >= 30) return rng(32,46);
-    else               return rng(52,70);
+    if      (sh >= 48) return rng(8,18);
+    else if (sh >= 28) return rng(42,58);
+    else               return rng(62,80);
   } else if (s.pow === 3) {
-    if      (sh >= 68) return rng(8,18);
-    else if (sh >= 45) return rng(40,56);
-    else               return rng(62,82);
-  } else { // pow 4 — the mega storm
-    if      (sh >= 82) return rng(10,20);
-    else if (sh >= 60) return rng(48,65);
-    else               return rng(70,95);
+    if      (sh >= 65) return rng(10,20);
+    else if (sh >= 42) return rng(52,68);
+    else               return rng(75,95);
+  } else if (s.pow === 4) {
+    if      (sh >= 80) return rng(12,22);
+    else if (sh >= 58) return rng(60,78);
+    else               return rng(82,100);
+  } else { // pow 5 — the apocalypse storm
+    if      (sh >= 92) return rng(15,25);
+    else if (sh >= 70) return rng(68,85);
+    else               return rng(88,100);
   }
 }
 
 function stormMsg(s, dmg) {
-  const lbl = s.pow >= 4 ? '🌪️ CATASTROPHIC STORM' : (s.pow >= 3 ? '🌪️ MAJOR STORM' : '⛈️ Storm');
+  const lbl = s.pow >= 5 ? '🌪️ APOCALYPSE STORM' : (s.pow >= 4 ? '🌪️ CATASTROPHIC STORM' : (s.pow >= 3 ? '🌪️ MAJOR STORM' : '⛈️ Storm'));
   if (dmg < 18) return `${lbl} passed — shelter (${G.shelter}) held firm! Minor damage: −${dmg} health.`;
   if (dmg < 45) return `${lbl} hit hard! Shelter (${G.shelter}) gave partial protection. −${dmg} health.`;
   return `${lbl} was devastating! Shelter (${G.shelter}) too weak — needed ${s.req}+. −${dmg} health.`;
@@ -1082,14 +1088,15 @@ function stormMsg(s, dmg) {
 
 function randomEvent(evts) {
   const pool = [
-    {w:10, fn(){ const g=rng(15,25); G.food=cap(G.food+g); evts.push({cls:'good', txt:`🌴 Coconuts fell overnight! +${g} food.`}); }},
-    {w:12, fn(){ const d=rng(14,22); G.water=Math.max(0,G.water-d); evts.push({cls:'warning', txt:`☀️ Drought dried your water supply overnight: −${d} water.`}); }},
-    {w:10, fn(){ if(!G.sick){G.sick=true; G.health=Math.max(0,G.health-15); evts.push({cls:'danger', txt:'🤒 Woke up with a fever! −15 health. Rest to cure it.'});} }},
-    {w:10, fn(){ if(G.shelter>10){const d=rng(10,18); G.shelter=Math.max(0,G.shelter-d); evts.push({cls:'warning', txt:`🌊 High tide damaged your shelter: −${d} shelter.`});} }},
-    {w:12, fn(){ const g=rng(10,20); G.water=cap(G.water+g); evts.push({cls:'good', txt:`🌧️ Rain collected overnight! +${g} water.`}); }},
-    {w:8,  fn(){ const d=rng(8,15); G.food=Math.max(0,G.food-d); evts.push({cls:'warning', txt:`🐀 Rats got into your food stores: −${d} food.`}); }},
-    {w:8,  fn(){ G.injured=true; G.health=Math.max(0,G.health-10); evts.push({cls:'danger', txt:'🦂 Scorpion sting in the night! −10 health, now injured.'}); }},
-    {w:6,  fn(){ const g=rng(12,20); G.food=cap(G.food+g); G.totalFood+=g; evts.push({cls:'good', txt:`🐟 Traps caught extra overnight! +${g} food.`}); }},
+    {w:8,  fn(){ const g=rng(10,18); G.food=cap(G.food+g); evts.push({cls:'good', txt:`🌴 Coconuts fell overnight! +${g} food.`}); }},
+    {w:14, fn(){ const d=rng(20,32); G.water=Math.max(0,G.water-d); evts.push({cls:'warning', txt:`☀️ Drought dried your water supply overnight: −${d} water.`}); }},
+    {w:12, fn(){ if(!G.sick){G.sick=true; G.health=Math.max(0,G.health-20); evts.push({cls:'danger', txt:'🤒 Woke up with a severe fever! −20 health. Rest to cure it.'});} }},
+    {w:12, fn(){ if(G.shelter>5){const d=rng(15,26); G.shelter=Math.max(0,G.shelter-d); evts.push({cls:'warning', txt:`🌊 Flash flood damaged your shelter: −${d} shelter.`});} }},
+    {w:10, fn(){ const g=rng(8,15); G.water=cap(G.water+g); evts.push({cls:'good', txt:`🌧️ Rain collected overnight! +${g} water.`}); }},
+    {w:12, fn(){ const d=rng(12,22); G.food=Math.max(0,G.food-d); evts.push({cls:'warning', txt:`🐀 Rats destroyed your food stores: −${d} food.`}); }},
+    {w:10, fn(){ G.injured=true; G.health=Math.max(0,G.health-18); evts.push({cls:'danger', txt:'🦂 Scorpion sting in the night! −18 health, now injured.'}); }},
+    {w:6,  fn(){ const d=rng(10,18); G.food=Math.max(0,G.food-d); G.health=Math.max(0,G.health-12); evts.push({cls:'danger', txt:`🍄 Food spoiled — you ate it anyway. −${d} food, −12 health.`}); }},
+    {w:8,  fn(){ const d=rng(14,24); G.water=Math.max(0,G.water-d); G.sick=true; evts.push({cls:'danger', txt:`🦠 Water contaminated! −${d} water, now sick.`}); }},
   ];
   const total = pool.reduce((a,e)=>a+e.w, 0);
   let roll = Math.random() * total;
